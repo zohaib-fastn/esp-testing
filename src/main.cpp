@@ -35,17 +35,17 @@ const char webpage[] PROGMEM = R"rawliteral(
   <title>Smart Door Lock</title>
   <style>
     :root {
-      --bg1: #0a192f; --bg2: #112240; --bg3: #1a365d;
-      --card-bg: rgba(255,255,255,0.05); --card-border: rgba(255,255,255,0.1);
-      --text: #e2e8f0; --text-dim: #718096; --text-muted: #4a5568;
-      --cyan: #48dbfb; --cyan-glow: rgba(72,219,251,0.3);
-      --orange: #ff9f43; --orange-glow: rgba(255,159,67,0.3);
-      --green: #2ed573; --red: #ff4757; --purple: #a855f7;
+      --bg1: #0f0c29; --bg2: #302b63; --bg3: #24243e;
+      --card-bg: rgba(255,255,255,0.06); --card-border: rgba(255,255,255,0.12);
+      --text: #f0e6ff; --text-dim: #a78bfa; --text-muted: #6d5a9e;
+      --cyan: #06d6a0; --cyan-glow: rgba(6,214,160,0.3);
+      --orange: #f72585; --orange-glow: rgba(247,37,133,0.3);
+      --green: #06d6a0; --red: #ef476f; --purple: #7209b7;
     }
     [data-theme="light"] {
-      --bg1: #f0f4f8; --bg2: #e2e8f0; --bg3: #cbd5e1;
-      --card-bg: rgba(255,255,255,0.8); --card-border: rgba(0,0,0,0.1);
-      --text: #1a202c; --text-dim: #4a5568; --text-muted: #a0aec0;
+      --bg1: #faf5ff; --bg2: #ede9fe; --bg3: #ddd6fe;
+      --card-bg: rgba(255,255,255,0.85); --card-border: rgba(114,9,183,0.15);
+      --text: #1e1b4b; --text-dim: #6d28d9; --text-muted: #a78bfa;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -99,8 +99,8 @@ const char webpage[] PROGMEM = R"rawliteral(
       padding: 14px 24px; border-radius: 14px; margin-bottom: 24px;
       font-size: 17px; font-weight: 600; transition: all 0.4s ease;
     }
-    .status-locked { background: rgba(72,219,251,0.12); border: 1px solid rgba(72,219,251,0.25); color: var(--cyan); }
-    .status-unlocked { background: rgba(255,159,67,0.12); border: 1px solid rgba(255,159,67,0.25); color: var(--orange); }
+    .status-locked { background: rgba(6,214,160,0.12); border: 1px solid rgba(6,214,160,0.25); color: var(--cyan); }
+    .status-unlocked { background: rgba(247,37,133,0.12); border: 1px solid rgba(247,37,133,0.25); color: var(--orange); }
     .dot { width: 10px; height: 10px; border-radius: 50%; transition: all 0.3s; }
     .dot.locked { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
     .dot.unlocked { background: var(--orange); box-shadow: 0 0 10px var(--orange); }
@@ -113,11 +113,11 @@ const char webpage[] PROGMEM = R"rawliteral(
     }
     .btn:active { transform: scale(0.95); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .btn-unlock { background: linear-gradient(135deg, #ff9f43, #f7b731); box-shadow: 0 4px 15px rgba(247,183,49,0.25); }
-    .btn-lock { background: linear-gradient(135deg, #48dbfb, #0abde3); box-shadow: 0 4px 15px rgba(10,189,227,0.25); }
+    .btn-unlock { background: linear-gradient(135deg, #f72585, #b5179e); box-shadow: 0 4px 15px rgba(247,37,133,0.3); }
+    .btn-lock { background: linear-gradient(135deg, #06d6a0, #05a67a); box-shadow: 0 4px 15px rgba(6,214,160,0.3); }
     .btn-full { grid-column: 1 / -1; }
-    .btn-ota { background: linear-gradient(135deg, #a855f7, #7c3aed); box-shadow: 0 4px 15px rgba(124,58,237,0.25); font-size: 13px; padding: 11px; }
-    .btn-danger { background: linear-gradient(135deg, #ff6348, #ff4757); box-shadow: 0 4px 15px rgba(255,71,87,0.25); font-size: 13px; padding: 11px; }
+    .btn-ota { background: linear-gradient(135deg, #7209b7, #560bad); box-shadow: 0 4px 15px rgba(114,9,183,0.3); font-size: 13px; padding: 11px; }
+    .btn-danger { background: linear-gradient(135deg, #ef476f, #d62246); box-shadow: 0 4px 15px rgba(239,71,111,0.3); font-size: 13px; padding: 11px; }
     .btn .spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; margin: 0 auto; }
     .btn.loading .label { display: none; }
     .btn.loading .spinner { display: inline-block; }
@@ -187,9 +187,9 @@ const char webpage[] PROGMEM = R"rawliteral(
       padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .badge-green { background: rgba(46,213,115,0.15); border: 1px solid rgba(46,213,115,0.25); color: var(--green); }
-    .badge-purple { background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.25); color: var(--purple); }
-    .badge-cyan { background: rgba(72,219,251,0.15); border: 1px solid rgba(72,219,251,0.25); color: var(--cyan); }
+    .badge-green { background: rgba(6,214,160,0.15); border: 1px solid rgba(6,214,160,0.25); color: var(--green); }
+    .badge-purple { background: rgba(114,9,183,0.15); border: 1px solid rgba(114,9,183,0.25); color: var(--purple); }
+    .badge-cyan { background: rgba(6,214,160,0.15); border: 1px solid rgba(6,214,160,0.25); color: var(--cyan); }
 
     .toast-container { position: fixed; top: 16px; right: 16px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
     .toast {
@@ -398,8 +398,8 @@ function fetchStatus() {
 
       heapData.push(d.heap); if (heapData.length > maxPoints) heapData.shift();
       wifiData.push(d.rssi); if (wifiData.length > maxPoints) wifiData.shift();
-      drawChart('heapChart', heapData, 'rgba(72,219,251,0.8)', 'rgba(72,219,251,0.1)');
-      drawChart('wifiChart', wifiData, 'rgba(168,85,247,0.8)', 'rgba(168,85,247,0.1)');
+      drawChart('heapChart', heapData, 'rgba(6,214,160,0.8)', 'rgba(6,214,160,0.1)');
+      drawChart('wifiChart', wifiData, 'rgba(114,9,183,0.8)', 'rgba(114,9,183,0.1)');
     }
   };
   x.onerror = x.ontimeout = function() {
@@ -441,7 +441,7 @@ function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
   document.getElementById('tab-'+name).classList.add('active');
   event.target.classList.add('active');
-  if (name==='chart') { drawChart('heapChart',heapData,'rgba(72,219,251,0.8)','rgba(72,219,251,0.1)'); drawChart('wifiChart',wifiData,'rgba(168,85,247,0.8)','rgba(168,85,247,0.1)'); }
+  if (name==='chart') { drawChart('heapChart',heapData,'rgba(6,214,160,0.8)','rgba(6,214,160,0.1)'); drawChart('wifiChart',wifiData,'rgba(114,9,183,0.8)','rgba(114,9,183,0.1)'); }
 }
 
 function toggleTheme() {
@@ -460,7 +460,7 @@ setInterval(fetchStatus, 2000);
 </html>
 )rawliteral";
 
-#define FIRMWARE_VERSION "1.4.1"
+#define FIRMWARE_VERSION "1.4.2"
 
 void sendWebhook(const char* action) {
   WiFiClient client;
