@@ -6,12 +6,19 @@
 #include <ArduinoOTA.h>
 #include <ESP8266mDNS.h>
 #include <WiFiClient.h>
+#include <WiFiClientSecureBearSSL.h>
+#include <ESP8266httpUpdate.h>
 
 const char* ssid = "MERCUSYS_5E58";
 const char* password = "94306750";
 const char* webhookUrl = "http://webhook.site/97732e3d-c284-4fe3-ad06-f3024ccbca3c";
 const char* otaHostname = "esp32";
 const char* mdnsHostname = "esp32";
+
+const char* fwVersionUrl = "https://github.com/zohaib-fastn/esp-testing/releases/latest/download/version.txt";
+const char* fwBinaryUrl = "https://github.com/zohaib-fastn/esp-testing/releases/latest/download/firmware.bin";
+const unsigned long updateCheckInterval = 5 * 60 * 1000; // 5 minutes
+unsigned long lastUpdateCheck = 0;
 
 #define LED_PIN 2
 
@@ -233,6 +240,49 @@ void handleLock() {
   server.send(302);
 }
 
+void checkForOTAUpdate() {
+  Serial.println("[OTA] Checking for firmware updates...");
+
+  BearSSL::WiFiClientSecure client;
+  client.setInsecure();
+
+  HTTPClient http;
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  http.begin(client, fwVersionUrl);
+
+  int httpCode = http.GET();
+  if (httpCode == 200) {
+    String newVersion = http.getString();
+    newVersion.trim();
+    Serial.printf("[OTA] Current: %s, Available: %s\n", FIRMWARE_VERSION, newVersion.c_str());
+
+    if (newVersion != FIRMWARE_VERSION) {
+      Serial.println("[OTA] New version found! Downloading...");
+      http.end();
+
+      ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+      t_httpUpdate_return ret = ESPhttpUpdate.update(client, fwBinaryUrl);
+
+      switch (ret) {
+        case HTTP_UPDATE_FAILED:
+          Serial.printf("[OTA] Update failed: %s\n", ESPhttpUpdate.getLastErrorString().c_str());
+          break;
+        case HTTP_UPDATE_NO_UPDATES:
+          Serial.println("[OTA] No updates available.");
+          break;
+        case HTTP_UPDATE_OK:
+          Serial.println("[OTA] Update successful! Rebooting...");
+          break;
+      }
+    } else {
+      Serial.println("[OTA] Firmware is up to date.");
+    }
+  } else {
+    Serial.printf("[OTA] Version check failed: HTTP %d\n", httpCode);
+  }
+  http.end();
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
@@ -313,4 +363,9 @@ void loop() {
   MDNS.update();
   ArduinoOTA.handle();
   server.handleClient();
+
+  if (millis() - lastUpdateCheck >= updateCheckInterval) {
+    lastUpdateCheck = millis();
+    checkForOTAUpdate();
+  }
 }
