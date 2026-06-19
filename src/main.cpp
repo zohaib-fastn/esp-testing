@@ -226,7 +226,7 @@ const char webpage[] PROGMEM = R"rawliteral(
       </div>
       <span class="lock-icon" id="lockIcon">&#128274;</span>
       <h1>Smart Door Lock</h1>
-      <p class="subtitle">NodeMCU v3 IoT Controller</p>
+      <p class="subtitle">NodeMCU v3 IoT Controller - OTA Auto-Updated!</p>
       <div class="status-bar status-locked" id="statusBar">
         <span class="dot locked" id="statusDot"></span>
         <span id="statusText">Door is LOCKED</span>
@@ -460,7 +460,7 @@ setInterval(fetchStatus, 2000);
 </html>
 )rawliteral";
 
-#define FIRMWARE_VERSION "1.4.0"
+#define FIRMWARE_VERSION "1.4.1"
 
 void sendWebhook(const char* action) {
   WiFiClient client;
