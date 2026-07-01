@@ -22,16 +22,11 @@ const unsigned long updateCheckInterval = 5 * 60 * 1000; // 5 minutes
 unsigned long lastUpdateCheck = 0;
 
 #define LED_PIN 2
-#define BTN_PIN D3 // onboard FLASH button (GPIO0)
 
 // Relay endpoint holds the real GitHub token server-side so it never ships
 // inside this public repo's OTA firmware binary.
 const char* triggerRelayUrl = TRIGGER_RELAY_URL;
 const char* deviceSecret = DEVICE_SECRET;
-
-bool btnLastState = HIGH;
-unsigned long btnLastChange = 0;
-const unsigned long btnDebounceMs = 50;
 
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
@@ -253,6 +248,9 @@ const char webpage[] PROGMEM = R"rawliteral(
         <button class="btn btn-danger btn-full" onclick="sendAction('restart')" id="btnRestart">
           <span class="label">RESTART DEVICE</span><span class="spinner"></span>
         </button>
+        <button class="btn btn-ota btn-full" onclick="triggerWorkflow()" id="btnTrigger">
+          <span class="label">TRIGGER GITHUB WORKFLOW</span><span class="spinner"></span>
+        </button>
       </div>
     </div>
 
@@ -356,6 +354,22 @@ function sendAction(action) {
       void icon.offsetWidth;
       icon.classList.add('animate');
     } else { toast('Action failed!', 'error'); }
+  };
+  x.onerror = function() { btn.classList.remove('loading'); btn.disabled = false; toast('Network error!', 'error'); };
+  x.send();
+}
+
+function triggerWorkflow() {
+  var btn = document.getElementById('btnTrigger');
+  btn.classList.add('loading'); btn.disabled = true;
+  var x = new XMLHttpRequest();
+  x.open('GET', '/api/trigger-workflow');
+  x.onload = function() {
+    btn.classList.remove('loading'); btn.disabled = false;
+    if (x.status === 200) {
+      toast('GitHub workflow triggered', 'success');
+      addLog('GitHub workflow triggered', 'system');
+    } else { toast('Trigger failed!', 'error'); }
   };
   x.onerror = function() { btn.classList.remove('loading'); btn.disabled = false; toast('Network error!', 'error'); };
   x.send();
@@ -471,7 +485,7 @@ setInterval(fetchStatus, 2000);
 </html>
 )rawliteral";
 
-#define FIRMWARE_VERSION "1.4.3"
+#define FIRMWARE_VERSION "1.4.4"
 
 void triggerGithubWorkflow() {
   BearSSL::WiFiClientSecure client;
@@ -491,18 +505,10 @@ void triggerGithubWorkflow() {
   http.end();
 }
 
-void checkButton() {
-  bool state = digitalRead(BTN_PIN);
-  unsigned long now = millis();
-
-  if (state != btnLastState && now - btnLastChange > btnDebounceMs) {
-    btnLastChange = now;
-    btnLastState = state;
-    if (state == LOW) { // press (active low, INPUT_PULLUP)
-      Serial.println("[Button] Pressed -> triggering GitHub workflow");
-      triggerGithubWorkflow();
-    }
-  }
+void handleApiTriggerWorkflow() {
+  Serial.println("[Dashboard] Trigger button pressed -> triggering GitHub workflow");
+  triggerGithubWorkflow();
+  server.send(200, "application/json", "{\"triggered\":true}");
 }
 
 void sendWebhook(const char* action) {
@@ -627,7 +633,6 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
-  pinMode(BTN_PIN, INPUT_PULLUP);
 
   Serial.println("\n=============================");
   Serial.println("  Smart Door Lock Server");
@@ -692,6 +697,7 @@ void setup() {
   server.on("/api/unlock", handleApiUnlock);
   server.on("/api/lock", handleApiLock);
   server.on("/api/restart", handleApiRestart);
+  server.on("/api/trigger-workflow", handleApiTriggerWorkflow);
 
   server.begin();
   Serial.println("Smart Door Lock server started!");
@@ -704,7 +710,6 @@ void loop() {
   MDNS.update();
   ArduinoOTA.handle();
   server.handleClient();
-  checkButton();
 
   if (millis() - lastUpdateCheck >= updateCheckInterval) {
     lastUpdateCheck = millis();
