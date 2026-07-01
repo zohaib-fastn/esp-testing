@@ -471,7 +471,7 @@ setInterval(fetchStatus, 2000);
 </html>
 )rawliteral";
 
-#define FIRMWARE_VERSION "1.4.2"
+#define FIRMWARE_VERSION "1.4.3"
 
 void triggerGithubWorkflow() {
   BearSSL::WiFiClientSecure client;
