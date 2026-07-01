@@ -26,6 +26,16 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Write secrets.h
+        run: |
+          cat > include/secrets.h <<EOF
+          #define WIFI_SSID "${{ secrets.WIFI_SSID }}"
+          #define WIFI_PASSWORD "${{ secrets.WIFI_PASSWORD }}"
+          #define WEBHOOK_URL "${{ secrets.WEBHOOK_URL }}"
+          #define TRIGGER_RELAY_URL "${{ secrets.TRIGGER_RELAY_URL }}"
+          #define DEVICE_SECRET "${{ secrets.DEVICE_SECRET }}"
+          EOF
+
       - name: Build firmware
         run: pio run -e nodemcuv2
 
