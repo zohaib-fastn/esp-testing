@@ -8,10 +8,11 @@
 #include <WiFiClient.h>
 #include <WiFiClientSecureBearSSL.h>
 #include <ESP8266httpUpdate.h>
+#include "secrets.h"
 
-const char* ssid = "MERCUSYS_5E58";
-const char* password = "94306750";
-const char* webhookUrl = "http://webhook.site/97732e3d-c284-4fe3-ad06-f3024ccbca3c";
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASSWORD;
+const char* webhookUrl = WEBHOOK_URL;
 const char* otaHostname = "esp32";
 const char* mdnsHostname = "esp32";
 
@@ -21,6 +22,16 @@ const unsigned long updateCheckInterval = 5 * 60 * 1000; // 5 minutes
 unsigned long lastUpdateCheck = 0;
 
 #define LED_PIN 2
+#define BTN_PIN D3 // onboard FLASH button (GPIO0)
+
+// Relay endpoint holds the real GitHub token server-side so it never ships
+// inside this public repo's OTA firmware binary.
+const char* triggerRelayUrl = TRIGGER_RELAY_URL;
+const char* deviceSecret = DEVICE_SECRET;
+
+bool btnLastState = HIGH;
+unsigned long btnLastChange = 0;
+const unsigned long btnDebounceMs = 50;
 
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
@@ -462,6 +473,38 @@ setInterval(fetchStatus, 2000);
 
 #define FIRMWARE_VERSION "1.4.2"
 
+void triggerGithubWorkflow() {
+  BearSSL::WiFiClientSecure client;
+  client.setInsecure();
+  HTTPClient http;
+
+  http.begin(client, triggerRelayUrl);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-Device-Secret", deviceSecret);
+
+  String payload = "{\"device\":\"NodeMCU-DoorLock\",\"ip\":\"";
+  payload += WiFi.localIP().toString();
+  payload += "\"}";
+
+  int httpCode = http.POST(payload);
+  Serial.printf("[GH Trigger] -> HTTP %d\n", httpCode);
+  http.end();
+}
+
+void checkButton() {
+  bool state = digitalRead(BTN_PIN);
+  unsigned long now = millis();
+
+  if (state != btnLastState && now - btnLastChange > btnDebounceMs) {
+    btnLastChange = now;
+    btnLastState = state;
+    if (state == LOW) { // press (active low, INPUT_PULLUP)
+      Serial.println("[Button] Pressed -> triggering GitHub workflow");
+      triggerGithubWorkflow();
+    }
+  }
+}
+
 void sendWebhook(const char* action) {
   WiFiClient client;
   HTTPClient http;
@@ -584,6 +627,7 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
+  pinMode(BTN_PIN, INPUT_PULLUP);
 
   Serial.println("\n=============================");
   Serial.println("  Smart Door Lock Server");
@@ -660,6 +704,7 @@ void loop() {
   MDNS.update();
   ArduinoOTA.handle();
   server.handleClient();
+  checkButton();
 
   if (millis() - lastUpdateCheck >= updateCheckInterval) {
     lastUpdateCheck = millis();
