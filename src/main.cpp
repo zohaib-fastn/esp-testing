@@ -485,9 +485,9 @@ setInterval(fetchStatus, 2000);
 </html>
 )rawliteral";
 
-#define FIRMWARE_VERSION "1.4.4"
+#define FIRMWARE_VERSION "1.4.5"
 
-void triggerGithubWorkflow() {
+int triggerGithubWorkflow() {
   BearSSL::WiFiClientSecure client;
   client.setInsecure();
   HTTPClient http;
@@ -502,13 +502,24 @@ void triggerGithubWorkflow() {
 
   int httpCode = http.POST(payload);
   Serial.printf("[GH Trigger] -> HTTP %d\n", httpCode);
+  if (httpCode <= 0) {
+    Serial.printf("[GH Trigger] Connection error: %s\n", http.errorToString(httpCode).c_str());
+  }
   http.end();
+  return httpCode;
 }
 
 void handleApiTriggerWorkflow() {
   Serial.println("[Dashboard] Trigger button pressed -> triggering GitHub workflow");
-  triggerGithubWorkflow();
-  server.send(200, "application/json", "{\"triggered\":true}");
+  int httpCode = triggerGithubWorkflow();
+  if (httpCode >= 200 && httpCode < 300) {
+    server.send(200, "application/json", "{\"triggered\":true}");
+  } else {
+    String json = "{\"triggered\":false,\"httpCode\":";
+    json += String(httpCode);
+    json += "}";
+    server.send(502, "application/json", json);
+  }
 }
 
 void sendWebhook(const char* action) {
